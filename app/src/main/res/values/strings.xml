@@ -6,4 +6,21 @@
     <string name="profile_placeholder">Pantalla de Perfil</string>
     <string name="game_placeholder">Pantalla de Juego</string>
     <string name="settings_placeholder">Pantalla de Ajustes</string>
+    <string name="difficulty_beginner">Principiante</string>
+    <string name="difficulty_medium">Medio</string>
+    <string name="difficulty_expert">Experto</string>
+    <string name="your_turn">Tu turno</string>
+    <string name="ai_thinking">La IA está pensando...</string>
+    <string name="new_game">Nueva partida</string>
+    <string name="game_over">Fin de la partida</string>
+    <string name="game_over_win">¡Has ganado!</string>
+    <string name="game_over_lose">Has perdido...</string>
+    <string name="game_over_draw">¡Empate!</string>
+    <string name="score_format">V: %1$d | D: %2$d | E: %3$d</string>
+    <string name="rematch">Revancha</string>
+    <string name="a11y_cell_description">Fila %1$d, columna %2$d, %3$s</string>
+    <string name="a11y_cell_empty">vacía</string>
+    <string name="a11y_cell_x">X</string>
+    <string name="a11y_cell_o">O</string>
+    <string name="close">Cerrar</string>
 </resources>
