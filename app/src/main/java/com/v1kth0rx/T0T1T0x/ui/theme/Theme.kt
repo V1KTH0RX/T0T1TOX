@@ -12,20 +12,8 @@ import androidx.compose.material3.expressiveLightColorScheme
 import androidx.compose.material3.lightColorScheme
 import androidx.compose.runtime.Composable
 import androidx.compose.ui.platform.LocalContext
-
-enum class AppPalette {
-    DINAMICO,
-    ESMERALDA,
-    OCEANO,
-    ATARDECER,
-    LAVANDA,
-    ROSA,
-    GRAFITO
-}
-
-enum class ThemeMode {
-    SISTEMA, CLARO, OSCURO
-}
+import com.v1kth0rx.T0T1T0x.data.AppPalette
+import com.v1kth0rx.T0T1T0x.data.ThemeMode
 
 @OptIn(ExperimentalMaterial3ExpressiveApi::class)
 @Composable

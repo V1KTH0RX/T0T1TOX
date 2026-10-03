@@ -1,5 +1,5 @@
 <resources>
-    <string name="app_name">Totito</string>
+    <string name="app_name">TotitoX</string>
     <string name="tab_profile">Perfil</string>
     <string name="tab_game">Juego</string>
     <string name="tab_settings">Ajustes</string>
@@ -23,4 +23,25 @@
     <string name="a11y_cell_x">X</string>
     <string name="a11y_cell_o">O</string>
     <string name="close">Cerrar</string>
+
+    <string name="settings_color">Color</string>
+    <string name="settings_theme_mode">Modo de tema</string>
+    <string name="settings_difficulty">Dificultad</string>
+    <string name="settings_icon_style">Estilo de íconos</string>
+    <string name="palette_dynamic">Dinámico</string>
+    <string name="palette_emerald">Esmeralda</string>
+    <string name="palette_ocean">Océano</string>
+    <string name="palette_sunset">Atardecer</string>
+    <string name="palette_lavender">Lavanda</string>
+    <string name="palette_rose">Rosa</string>
+    <string name="palette_graphite">Grafito</string>
+    <string name="theme_system">Sistema</string>
+    <string name="theme_light">Claro</string>
+    <string name="theme_dark">Oscuro</string>
+    <string name="icon_classic">Clásico</string>
+    <string name="icon_numbers">Números</string>
+    <string name="icon_shapes">Formas</string>
+    <string name="icon_signs">Signos</string>
+    <string name="dynamic_color_unavailable">Color dinámico requiere Android 12+</string>
+    <string name="a11y_select_palette">Seleccionar paleta %s</string>
 </resources>

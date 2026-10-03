@@ -5,8 +5,6 @@ import com.v1kth0rx.T0T1T0x.domain.Difficulty
 import com.v1kth0rx.T0T1T0x.domain.GameResult
 import com.v1kth0rx.T0T1T0x.domain.Player
 
-enum class IconStyle { CLASSIC, NUMBERS, SHAPES, SIGNS }
-
 data class GameUiState(
     val board: Board = Board(),
     val humanPlayer: Player = Player.X,

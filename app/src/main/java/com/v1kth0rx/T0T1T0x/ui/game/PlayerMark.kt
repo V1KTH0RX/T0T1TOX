@@ -16,6 +16,7 @@ import androidx.compose.ui.graphics.StrokeJoin
 import androidx.compose.ui.graphics.drawscope.Stroke
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.text.style.TextAlign
+import com.v1kth0rx.T0T1T0x.data.IconStyle
 import com.v1kth0rx.T0T1T0x.domain.Player
 
 @Composable

@@ -7,6 +7,7 @@ import androidx.compose.animation.core.Spring
 import androidx.compose.animation.core.spring
 import androidx.compose.animation.scaleIn
 import androidx.compose.foundation.background
+import androidx.compose.foundation.border
 import androidx.compose.foundation.clickable
 import androidx.compose.foundation.layout.*
 import androidx.compose.foundation.rememberScrollState
@@ -32,74 +33,86 @@ import com.v1kth0rx.T0T1T0x.R
 import com.v1kth0rx.T0T1T0x.domain.Difficulty
 import com.v1kth0rx.T0T1T0x.domain.GameResult
 import com.v1kth0rx.T0T1T0x.domain.Player
+import com.v1kth0rx.T0T1T0x.data.IconStyle
+
+@Composable
+fun GameScreen(
+    iconStyle: IconStyle,
+    viewModel: GameViewModel,
+    modifier: Modifier = Modifier
+) {
+    val uiState by viewModel.uiState.collectAsState()
+
+    GameContent(
+        uiState = uiState,
+        iconStyle = iconStyle,
+        onCellClick = viewModel::onCellClick,
+        onDifficultyChange = viewModel::onDifficultyChange,
+        onNewGame = viewModel::onNewGame,
+        onDismissDialog = viewModel::dismissGameOverDialog,
+        modifier = modifier
+    )
+}
 
 @OptIn(ExperimentalMaterial3Api::class)
 @Composable
-fun GameScreen(
-    modifier: Modifier = Modifier,
-    iconStyle: IconStyle = IconStyle.CLASSIC,
-    viewModel: GameViewModel = viewModel(
-        viewModelStoreOwner = LocalContext.current as ComponentActivity,
-        factory = GameViewModel.Factory
-    )
+fun GameContent(
+    uiState: GameUiState,
+    iconStyle: IconStyle,
+    onCellClick: (Int) -> Unit,
+    onDifficultyChange: (Difficulty) -> Unit,
+    onNewGame: () -> Unit,
+    onDismissDialog: () -> Unit,
+    modifier: Modifier = Modifier
 ) {
-    val uiState by viewModel.uiState.collectAsState()
     val haptics = LocalHapticFeedback.current
     val configuration = LocalConfiguration.current
     val isLandscape = configuration.orientation == Configuration.ORIENTATION_LANDSCAPE
 
-    // Feedback al terminar partida
-    LaunchedEffect(uiState.result) {
-        if (uiState.result !is GameResult.InProgress) {
-            haptics.performHapticFeedback(HapticFeedbackType.LongPress)
-        }
-    }
-
     val boardContent: @Composable (Modifier) -> Unit = { boardModifier ->
         Box(
             modifier = boardModifier
-                .defaultMinSize(minWidth = 144.dp, minHeight = 144.dp)
                 .clip(RoundedCornerShape(16.dp))
                 .background(MaterialTheme.colorScheme.surfaceVariant)
-                .padding(8.dp),
-            contentAlignment = Alignment.Center
+                .padding(8.dp)
         ) {
-            Column(modifier = Modifier.fillMaxSize()) {
-                for (row in 0 until 3) {
-                    Row(modifier = Modifier.weight(1f)) {
-                        for (col in 0 until 3) {
+            Column(
+                modifier = Modifier.fillMaxSize(),
+                verticalArrangement = Arrangement.SpaceEvenly
+            ) {
+                for (row in 0..2) {
+                    Row(
+                        modifier = Modifier
+                            .fillMaxWidth()
+                            .weight(1f),
+                        horizontalArrangement = Arrangement.SpaceEvenly
+                    ) {
+                        for (col in 0..2) {
                             val index = row * 3 + col
                             val cellPlayer = uiState.board.cells[index]
                             
-                            val emptyDesc = stringResource(R.string.a11y_cell_empty)
-                            val xDesc = stringResource(R.string.a11y_cell_x)
-                            val oDesc = stringResource(R.string.a11y_cell_o)
-                            val a11yDesc = stringResource(
-                                R.string.a11y_cell_description,
-                                row + 1, col + 1,
-                                when (cellPlayer) {
-                                    Player.X -> xDesc
-                                    Player.O -> oDesc
-                                    null -> emptyDesc
-                                }
-                            )
-
-                            // Verifica si esta celda es parte de la línea ganadora
-                            val isWinningCell = (uiState.result as? GameResult.Win)?.line?.contains(index) == true
+                            val playerDesc = when (cellPlayer) {
+                                Player.X -> stringResource(R.string.a11y_cell_x)
+                                Player.O -> stringResource(R.string.a11y_cell_o)
+                                null -> stringResource(R.string.a11y_cell_empty)
+                            }
+                            val a11yDesc = stringResource(R.string.a11y_cell_description, row + 1, col + 1, playerDesc)
 
                             Box(
                                 modifier = Modifier
                                     .weight(1f)
                                     .fillMaxHeight()
                                     .padding(4.dp)
-                                    .clip(RoundedCornerShape(12.dp))
-                                    .background(
-                                        if (isWinningCell) MaterialTheme.colorScheme.primaryContainer
-                                        else MaterialTheme.colorScheme.background
+                                    .clip(RoundedCornerShape(8.dp))
+                                    .background(MaterialTheme.colorScheme.surface)
+                                    .border(
+                                        width = 1.dp,
+                                        color = MaterialTheme.colorScheme.outlineVariant,
+                                        shape = RoundedCornerShape(8.dp)
                                     )
                                     .clickable(enabled = cellPlayer == null && !uiState.isAiThinking && uiState.result is GameResult.InProgress) {
                                         haptics.performHapticFeedback(HapticFeedbackType.TextHandleMove)
-                                        viewModel.onCellClick(index)
+                                        onCellClick(index)
                                     }
                                     .semantics { contentDescription = a11yDesc },
                                 contentAlignment = Alignment.Center
@@ -148,7 +161,7 @@ fun GameScreen(
             difficulties.forEachIndexed { index, diff ->
                 SegmentedButton(
                     selected = uiState.difficulty == diff,
-                    onClick = { viewModel.onDifficultyChange(diff) },
+                    onClick = { onDifficultyChange(diff) },
                     shape = SegmentedButtonDefaults.itemShape(index = index, count = difficulties.size)
                 ) {
                     Text(difficultyStrings[index])
@@ -168,7 +181,7 @@ fun GameScreen(
 
         Spacer(modifier = Modifier.height(32.dp))
 
-        Button(onClick = { viewModel.onNewGame() }) {
+        Button(onClick = onNewGame) {
             Text(stringResource(R.string.new_game))
         }
     }
@@ -239,7 +252,7 @@ fun GameScreen(
                 difficulties.forEachIndexed { index, diff ->
                     SegmentedButton(
                         selected = uiState.difficulty == diff,
-                        onClick = { viewModel.onDifficultyChange(diff) },
+                        onClick = { onDifficultyChange(diff) },
                         shape = SegmentedButtonDefaults.itemShape(index = index, count = difficulties.size)
                     ) {
                         Text(difficultyStrings[index])
@@ -268,7 +281,7 @@ fun GameScreen(
 
             Spacer(modifier = Modifier.height(32.dp))
 
-            Button(onClick = { viewModel.onNewGame() }) {
+            Button(onClick = onNewGame) {
                 Text(stringResource(R.string.new_game))
             }
         }
@@ -281,16 +294,16 @@ fun GameScreen(
             else -> ""
         }
         AlertDialog(
-            onDismissRequest = { viewModel.dismissGameOverDialog() },
+            onDismissRequest = onDismissDialog,
             title = { Text(title) },
             text = { Text(stringResource(R.string.game_over)) },
             confirmButton = {
-                TextButton(onClick = { viewModel.onNewGame() }) {
+                TextButton(onClick = onNewGame) {
                     Text(stringResource(R.string.rematch))
                 }
             },
             dismissButton = {
-                TextButton(onClick = { viewModel.dismissGameOverDialog() }) {
+                TextButton(onClick = onDismissDialog) {
                     Text(stringResource(R.string.close))
                 }
             }
@@ -302,7 +315,14 @@ fun GameScreen(
 @Composable
 fun GameScreenPortraitPreview() {
     MaterialTheme {
-        GameScreen(viewModel = GameViewModel())
+        GameContent(
+            uiState = GameUiState(),
+            iconStyle = IconStyle.CLASSIC,
+            onCellClick = {},
+            onDifficultyChange = {},
+            onNewGame = {},
+            onDismissDialog = {}
+        )
     }
 }
 
@@ -310,6 +330,13 @@ fun GameScreenPortraitPreview() {
 @Composable
 fun GameScreenLandscapePreview() {
     MaterialTheme {
-        GameScreen(viewModel = GameViewModel())
+        GameContent(
+            uiState = GameUiState(),
+            iconStyle = IconStyle.CLASSIC,
+            onCellClick = {},
+            onDifficultyChange = {},
+            onNewGame = {},
+            onDismissDialog = {}
+        )
     }
 }

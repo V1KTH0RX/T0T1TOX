@@ -1,7 +1,9 @@
 package com.v1kth0rx.T0T1T0x.ui.game
 
 import androidx.lifecycle.ViewModel
+import androidx.lifecycle.ViewModelProvider
 import androidx.lifecycle.viewModelScope
+import com.v1kth0rx.T0T1T0x.data.SettingsRepository
 import com.v1kth0rx.T0T1T0x.domain.AiFactory
 import com.v1kth0rx.T0T1T0x.domain.Board
 import com.v1kth0rx.T0T1T0x.domain.Difficulty
@@ -15,11 +17,14 @@ import kotlinx.coroutines.delay
 import kotlinx.coroutines.flow.MutableStateFlow
 import kotlinx.coroutines.flow.StateFlow
 import kotlinx.coroutines.flow.asStateFlow
+import kotlinx.coroutines.flow.distinctUntilChanged
+import kotlinx.coroutines.flow.map
 import kotlinx.coroutines.flow.update
 import kotlinx.coroutines.launch
 import kotlin.random.Random
 
 class GameViewModel(
+    private val settingsRepository: SettingsRepository,
     private val defaultDispatcher: CoroutineDispatcher = Dispatchers.Default,
     private val random: Random = Random.Default,
     private val aiDelayMs: Long = 500L
@@ -29,10 +34,35 @@ class GameViewModel(
     val uiState: StateFlow<GameUiState> = _uiState.asStateFlow()
 
     private var aiJob: Job? = null
+    private var isInitialized = false
 
     init {
-        // If human doesn't start, make AI move
-        checkAiTurn()
+        viewModelScope.launch {
+            settingsRepository.appSettings
+                .map { it.difficulty }
+                .distinctUntilChanged()
+                .collect { newDifficulty ->
+                    if (!isInitialized) {
+                        // Just set initial difficulty without restarting game
+                        _uiState.update { it.copy(difficulty = newDifficulty) }
+                        isInitialized = true
+                        checkAiTurn()
+                    } else if (_uiState.value.difficulty != newDifficulty) {
+                        aiJob?.cancel()
+                        _uiState.update { currentState ->
+                            currentState.copy(
+                                difficulty = newDifficulty,
+                                board = Board(),
+                                currentPlayer = Player.X,
+                                result = GameResult.InProgress,
+                                isAiThinking = false,
+                                isGameOverDialogVisible = false
+                            )
+                        }
+                        checkAiTurn()
+                    }
+                }
+        }
     }
 
     fun onCellClick(index: Int) {
@@ -64,20 +94,9 @@ class GameViewModel(
     }
 
     fun onDifficultyChange(difficulty: Difficulty) {
-        if (_uiState.value.difficulty == difficulty) return
-        
-        aiJob?.cancel()
-        _uiState.update { currentState ->
-            currentState.copy(
-                difficulty = difficulty,
-                board = Board(),
-                currentPlayer = Player.X,
-                result = GameResult.InProgress,
-                isAiThinking = false,
-                isGameOverDialogVisible = false
-            )
+        viewModelScope.launch {
+            settingsRepository.updateDifficulty(difficulty)
         }
-        checkAiTurn()
     }
 
     fun dismissGameOverDialog() {
@@ -121,7 +140,6 @@ class GameViewModel(
                 delay(aiDelayMs)
                 val ai = AiFactory.create(state.difficulty, random)
                 val currentState = _uiState.value
-                // Check if game is still in progress and it's AI turn (might have been cancelled)
                 if (currentState.result is GameResult.InProgress && currentState.currentPlayer != currentState.humanPlayer) {
                     val move = ai.nextMove(currentState.board, currentState.currentPlayer)
                     makeMove(move)
@@ -132,10 +150,12 @@ class GameViewModel(
     }
 
     companion object {
-        val Factory = object : androidx.lifecycle.ViewModelProvider.Factory {
+        fun provideFactory(
+            settingsRepository: SettingsRepository
+        ): ViewModelProvider.Factory = object : ViewModelProvider.Factory {
             @Suppress("UNCHECKED_CAST")
             override fun <T : ViewModel> create(modelClass: Class<T>): T {
-                return GameViewModel() as T
+                return GameViewModel(settingsRepository) as T
             }
         }
     }

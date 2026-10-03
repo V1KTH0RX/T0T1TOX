@@ -1,13 +1,20 @@
 package com.v1kth0rx.T0T1T0x.ui.game
 
 import app.cash.turbine.test
-import com.v1kth0rx.T0T1T0x.domain.AiFactory
+import com.v1kth0rx.T0T1T0x.data.AppPalette
+import com.v1kth0rx.T0T1T0x.data.AppSettings
+import com.v1kth0rx.T0T1T0x.data.IconStyle
+import com.v1kth0rx.T0T1T0x.data.SettingsRepository
+import com.v1kth0rx.T0T1T0x.data.ThemeMode
 import com.v1kth0rx.T0T1T0x.domain.Board
 import com.v1kth0rx.T0T1T0x.domain.Difficulty
 import com.v1kth0rx.T0T1T0x.domain.GameResult
 import com.v1kth0rx.T0T1T0x.domain.Player
 import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.ExperimentalCoroutinesApi
+import kotlinx.coroutines.flow.Flow
+import kotlinx.coroutines.flow.MutableStateFlow
+import kotlinx.coroutines.flow.update
 import kotlinx.coroutines.test.StandardTestDispatcher
 import kotlinx.coroutines.test.advanceTimeBy
 import kotlinx.coroutines.test.advanceUntilIdle
@@ -19,6 +26,27 @@ import org.junit.Assert.*
 import org.junit.Before
 import org.junit.Test
 import kotlin.random.Random
+
+class FakeSettingsRepository : SettingsRepository {
+    private val _appSettings = MutableStateFlow(AppSettings())
+    override val appSettings: Flow<AppSettings> = _appSettings
+
+    override suspend fun updatePalette(palette: AppPalette) {
+        _appSettings.update { it.copy(palette = palette) }
+    }
+
+    override suspend fun updateThemeMode(themeMode: ThemeMode) {
+        _appSettings.update { it.copy(themeMode = themeMode) }
+    }
+
+    override suspend fun updateDifficulty(difficulty: Difficulty) {
+        _appSettings.update { it.copy(difficulty = difficulty) }
+    }
+
+    override suspend fun updateIconStyle(iconStyle: IconStyle) {
+        _appSettings.update { it.copy(iconStyle = iconStyle) }
+    }
+}
 
 @OptIn(ExperimentalCoroutinesApi::class)
 class GameViewModelTest {
@@ -43,7 +71,8 @@ class GameViewModelTest {
 
     @Test
     fun humanWins_updatesScoreOnce() = runTest(testDispatcher) {
-        val viewModel = GameViewModel(testDispatcher, firstChoiceRandom, 500L)
+        val fakeRepository = FakeSettingsRepository()
+        val viewModel = GameViewModel(fakeRepository, testDispatcher, firstChoiceRandom, 500L)
         
         viewModel.onDifficultyChange(Difficulty.BEGINNER)
         advanceUntilIdle()
@@ -70,7 +99,8 @@ class GameViewModelTest {
 
     @Test
     fun aiMovesAutomaticallyWhenStarting() = runTest(testDispatcher) {
-        val viewModel = GameViewModel(testDispatcher, firstChoiceRandom, 500L)
+        val fakeRepository = FakeSettingsRepository()
+        val viewModel = GameViewModel(fakeRepository, testDispatcher, firstChoiceRandom, 500L)
         advanceUntilIdle() // humano empieza primero por defecto, X en 0
 
         viewModel.onCellClick(0) 
@@ -96,7 +126,8 @@ class GameViewModelTest {
 
     @Test
     fun ignoreTouchesDuringAiTurn() = runTest(testDispatcher) {
-        val viewModel = GameViewModel(testDispatcher, firstChoiceRandom, 500L)
+        val fakeRepository = FakeSettingsRepository()
+        val viewModel = GameViewModel(fakeRepository, testDispatcher, firstChoiceRandom, 500L)
         advanceUntilIdle()
 
         viewModel.onCellClick(4)
@@ -119,7 +150,8 @@ class GameViewModelTest {
 
     @Test
     fun newGameCancelsPendingAi() = runTest(testDispatcher) {
-        val viewModel = GameViewModel(testDispatcher, firstChoiceRandom, 500L)
+        val fakeRepository = FakeSettingsRepository()
+        val viewModel = GameViewModel(fakeRepository, testDispatcher, firstChoiceRandom, 500L)
         advanceUntilIdle()
 
         viewModel.onCellClick(4)
@@ -138,7 +170,8 @@ class GameViewModelTest {
 
     @Test
     fun humanLosesAgainstExpertAi() = runTest(testDispatcher) {
-        val viewModel = GameViewModel(testDispatcher, firstChoiceRandom, 500L)
+        val fakeRepository = FakeSettingsRepository()
+        val viewModel = GameViewModel(fakeRepository, testDispatcher, firstChoiceRandom, 500L)
         viewModel.onDifficultyChange(Difficulty.EXPERT)
         advanceUntilIdle()
 
@@ -172,5 +205,66 @@ class GameViewModelTest {
         val finalState = viewModel.uiState.value
         assertTrue(finalState.result is GameResult.Win)
         assertEquals(1, finalState.scoreLosses)
+    }
+
+    @Test
+    fun gameEndsInDraw_updatesScoreOnce() = runTest(testDispatcher) {
+        val fakeRepository = FakeSettingsRepository()
+        val viewModel = GameViewModel(fakeRepository, testDispatcher, firstChoiceRandom, 500L)
+        advanceUntilIdle()
+
+        // Set up a draw situation
+        // We can just manually place moves, but AI responds.
+        // It's easier to simulate clicks and let the AI respond with firstChoiceRandom,
+        // but we have to be careful to actually reach a draw.
+        // Since we want to test that a Draw updates scoreDraws exactly once,
+        // let's do this: X in 0, O in 1, X in 2, O in 3, X in 5, O in 4, X in 6, O in 8, X in 7.
+        // To control AI moves entirely, we can use a sequence random.
+        val sequenceRandom = object : Random() {
+            val seq = mutableListOf(0, 0, 0, 1)
+            override fun nextBits(bitCount: Int): Int = 0
+            override fun nextInt(until: Int): Int = seq.removeFirst()
+            override fun nextInt(): Int = 0
+        }
+        val drawViewModel = GameViewModel(fakeRepository, testDispatcher, sequenceRandom, 500L)
+        advanceUntilIdle()
+
+        drawViewModel.onCellClick(0) // X
+        advanceTimeBy(600) // O -> 1
+        drawViewModel.onCellClick(2) // X
+        advanceTimeBy(600) // O -> 3
+        drawViewModel.onCellClick(5) // X
+        advanceTimeBy(600) // O -> 4
+        drawViewModel.onCellClick(6) // X
+        advanceTimeBy(600) // O -> 8
+        drawViewModel.onCellClick(7) // X -> Board full, no winner = Draw
+        advanceUntilIdle()
+
+        val state = drawViewModel.uiState.value
+        assertTrue(state.result is GameResult.Draw)
+        assertEquals(1, state.scoreDraws)
+        assertEquals(0, state.scoreWins)
+        assertEquals(0, state.scoreLosses)
+    }
+
+    @Test
+    fun changeDifficultyDuringGame_resetsBoardAndCancelsAi() = runTest(testDispatcher) {
+        val fakeRepository = FakeSettingsRepository()
+        val viewModel = GameViewModel(fakeRepository, testDispatcher, firstChoiceRandom, 500L)
+        advanceUntilIdle()
+
+        viewModel.onCellClick(4)
+        
+        // Before AI finishes thinking (500ms), we change difficulty
+        advanceTimeBy(100)
+        viewModel.onDifficultyChange(Difficulty.EXPERT)
+        
+        advanceUntilIdle()
+        
+        val state = viewModel.uiState.value
+        assertEquals(Difficulty.EXPERT, state.difficulty)
+        // Board is reset
+        assertEquals(0, state.board.cells.count { it != null })
+        assertFalse(state.isAiThinking)
     }
 }
