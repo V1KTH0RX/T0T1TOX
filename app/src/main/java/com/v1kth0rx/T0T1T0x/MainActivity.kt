@@ -7,41 +7,59 @@ import androidx.activity.enableEdgeToEdge
 import androidx.compose.foundation.layout.fillMaxSize
 import androidx.compose.foundation.layout.padding
 import androidx.compose.material3.Scaffold
-import androidx.compose.material3.Text
-import androidx.compose.runtime.Composable
+import androidx.compose.runtime.getValue
+import androidx.compose.runtime.mutableStateOf
+import androidx.compose.runtime.saveable.rememberSaveable
+import androidx.compose.runtime.setValue
 import androidx.compose.ui.Modifier
-import androidx.compose.ui.tooling.preview.Preview
-import com.v1kth0rx.T0T1T0x.ui.theme.T0T1T0xTheme
+import androidx.navigation.compose.NavHost
+import androidx.navigation.compose.composable
+import androidx.navigation.compose.rememberNavController
+import com.v1kth0rx.T0T1T0x.ui.game.GameScreen
+import com.v1kth0rx.T0T1T0x.ui.navigation.Screen
+import com.v1kth0rx.T0T1T0x.ui.navigation.TotitoBottomNav
+import com.v1kth0rx.T0T1T0x.ui.profile.ProfileScreen
+import com.v1kth0rx.T0T1T0x.ui.settings.SettingsScreen
+import com.v1kth0rx.T0T1T0x.ui.theme.AppPalette
+import com.v1kth0rx.T0T1T0x.ui.theme.ThemeMode
+import com.v1kth0rx.T0T1T0x.ui.theme.TotitoTheme
 
 class MainActivity : ComponentActivity() {
     override fun onCreate(savedInstanceState: Bundle?) {
         super.onCreate(savedInstanceState)
         enableEdgeToEdge()
         setContent {
-            T0T1T0xTheme {
-                Scaffold(modifier = Modifier.fillMaxSize()) { innerPadding ->
-                    Greeting(
-                        name = "Android",
+            var currentPalette by rememberSaveable { mutableStateOf(AppPalette.DINAMICO) }
+            var currentThemeMode by rememberSaveable { mutableStateOf(ThemeMode.SISTEMA) }
+
+            TotitoTheme(palette = currentPalette, themeMode = currentThemeMode) {
+                val navController = rememberNavController()
+                
+                Scaffold(
+                    modifier = Modifier.fillMaxSize(),
+                    bottomBar = {
+                        TotitoBottomNav(navController = navController)
+                    }
+                ) { innerPadding ->
+                    NavHost(
+                        navController = navController,
+                        startDestination = Screen.Game.route,
                         modifier = Modifier.padding(innerPadding)
-                    )
+                    ) {
+                        composable(Screen.Profile.route) {
+                            ProfileScreen()
+                        }
+                        composable(Screen.Game.route) {
+                            GameScreen()
+                        }
+                        composable(Screen.Settings.route) {
+                            // Pasamos los estados para poder modificarlos desde ajustes temporalmente,
+                            // o simplemente mostramos la pantalla
+                            SettingsScreen()
+                        }
+                    }
                 }
             }
         }
-    }
-}
-
-@Composable
-fun Greeting(name: String, modifier: Modifier = Modifier) {
-    Text(
-        text = "Hello $name!",
-        modifier = modifier
-    )
-}
-
-@Preview(showBackground = true)
-@Composable
-fun GreetingPreview() {
-    T0T1T0xTheme {
-        Greeting("Android")
     }
 }

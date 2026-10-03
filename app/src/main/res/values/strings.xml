@@ -1,3 +1,9 @@
 <resources>
-    <string name="app_name">T0T1T0x</string>
+    <string name="app_name">Totito</string>
+    <string name="tab_profile">Perfil</string>
+    <string name="tab_game">Juego</string>
+    <string name="tab_settings">Ajustes</string>
+    <string name="profile_placeholder">Pantalla de Perfil</string>
+    <string name="game_placeholder">Pantalla de Juego</string>
+    <string name="settings_placeholder">Pantalla de Ajustes</string>
 </resources>
