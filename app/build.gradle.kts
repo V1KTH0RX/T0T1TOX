@@ -4,13 +4,13 @@ plugins {
 }
 
 android {
-    namespace = "com.v1kth0rx.T0T1T0x"
+    namespace = "com.v1kth0rx.totitox"
     compileSdk {
         version = release(37)
     }
 
     defaultConfig {
-        applicationId = "com.v1kth0rx.T0T1T0x"
+        applicationId = "com.v1kth0rx.totitox"
         minSdk = 24
         targetSdk = 37
         versionCode = 1
